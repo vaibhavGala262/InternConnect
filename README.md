@@ -1,27 +1,25 @@
-# InternConnect
-
 # InternConnect 🚀
 
-A full-stack web application to manage internships with features for students, faculty, and companies.
+InternConnect is a full-stack web application designed to streamline the internship management process for academic institutions. It provides tailored interfaces and features for students, faculty, and companies to efficiently manage internship applications, approvals, and tracking.
+
+---
 
 ## 🛠 Tech Stack
-- **Frontend:** React
-- **Backend:** FastAPI
+
+- **Frontend:** Next js 
+- **Backend:** FastAPI (Python)
 - **Database:** PostgreSQL
-- **Containerized with:** Docker & Docker Compose
-- **Genai:**Langgraph
+- **Containerization:** Docker 
+- **AI Integration:** LangGraph + GenAI
 
-## 📦 Features
-- Student login & profile management
-- Company application and tracking
-- Admin dashboards
+---
 
-## 🔧 Getting Started
+## 📦 Key Features
 
-### Prerequisites
-- Docker & Docker Compose installed
-
-### Clone the Repo
-```bash
-git clone https://github.com/vaibhavGala262/InternConnect.git
-cd InternConnect
+- 🧑‍🎓 Student authentication and profile management  
+- 🏢 Company registration and internship application workflow  
+- 📊 Admin dashboards for approvals, status tracking, and control  
+- 💬 Faculty-student communication via built-in chat module  
+- 📥 Exportable Excel sheets for enrolled student records  
+- 🔐 Role-based access: Student / Faculty / Admin  
+- 🧠 GenAI-powered automation and guidance using LangGraph
