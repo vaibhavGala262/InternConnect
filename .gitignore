@@ -1,0 +1,60 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+############################
+# 1) Global
+############################
+
+# OS & editor folders
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Env files
+.env
+.env.*
+.env.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+############################
+# 2) Backend (FastAPI + Alembic)
+############################
+
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+
+# Alembic cache
+backend/alembic/__pycache__/
+
+# Router cache
+backend/router/__pycache__/
+backend/router/websocket/__pycache__/
+
+# Database
+*.sqlite3
+*.log
+pgdata/
+
+############################
+# 3) Frontend (Next.js + Vercel)
+############################
+
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env*
+frontend/parallelServerBuildTraces/
+frontend/.vercel/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+
+improvements.txt

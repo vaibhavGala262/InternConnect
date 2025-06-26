@@ -1,0 +1,39 @@
+# -------- Stage 1: Build the Next.js app --------
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY package.json package-lock.json ./
+
+# Install dependencies (fix peer issues if any)
+RUN npm install --legacy-peer-deps
+
+# Copy rest of the project
+COPY . .
+
+# Build the production version of the app
+RUN npm run build
+
+# -------- Stage 2: Run the built app --------
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy only necessary files from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
+
+# Install only production dependencies (no dev stuff)
+RUN npm install --legacy-peer-deps --production
+
+# Expose port
+EXPOSE 3000
+
+# Start in production mode
+CMD ["npm", "run", "start"]
