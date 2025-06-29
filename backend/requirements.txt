@@ -8,5 +8,6 @@ passlib==1.7.4
 fastapi-mail==1.4.2
 psycopg2-binary==2.9.10
 google-generativeai==0.8.5
-pillow==11.2.1
 aiosmtplib==3.0.2
+pillow==11.2.1
+python-multipart==0.0.20
