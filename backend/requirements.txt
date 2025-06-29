@@ -13,3 +13,4 @@ pillow==11.2.1
 python-multipart==0.0.20
 numpy 
 pandas
+httpx
