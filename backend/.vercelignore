@@ -1,0 +1,1 @@
+pycache/ *.pyc .git/ .env tests/ venv/ *.log node_modules/
