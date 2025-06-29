@@ -1,1 +1,19 @@
-pycache/ *.pyc .git/ .env tests/ venv/ *.log node_modules/
+__pycache__/
+*.pyc
+.git/
+.env
+tests/
+venv/
+*.log
+data/
+migrations/
+*.sqlite3
+*.pdf
+*.csv
+*.xlsx
+static/
+models/
+.cache/
+*.pkl
+*.db
+user_photos/
