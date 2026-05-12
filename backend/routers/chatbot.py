@@ -3,8 +3,7 @@ from database import get_db
 from oauth import get_current_user
 from schemas import UserMessage
 from sqlalchemy.orm import Session 
-import httpx 
-from chatbot import get_gemini_response
+from chatbot import get_langgraph_response
 
 
 
@@ -46,9 +45,9 @@ async def ask_chatbot(
 ):
     print("User asked:", text.message)
     try:
-        reply = get_gemini_response(text.message)
+        reply = get_langgraph_response(text.message, current_user, db)
         return {"chatbot_reply": reply}
     except Exception as e:
-        print(f"Gemini error: {e}")
-        raise HTTPException(status_code=500, detail="Something went wrong with Gemini AI")
+        print(f"LangGraph error: {e}")
+        raise HTTPException(status_code=500, detail="Something went wrong with chatbot agent")
     

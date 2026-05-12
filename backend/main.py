@@ -7,11 +7,20 @@ from database import Base  , engine
 import models
 from fastapi.middleware.cors import CORSMiddleware
 import os 
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+
 
 PORT = os.getenv('PORT')
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,7 +45,7 @@ app.include_router(chatbot.router)
 app.include_router(contact_us.router)
 app.include_router(stats.router)
 
-Base.metadata.create_all(bind = engine)
+
 @app.get('/')
 def home():
     return {"message": "Hello, World!"}

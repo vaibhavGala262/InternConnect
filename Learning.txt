@@ -1,0 +1,2 @@
+1. Tried to deploy backend on vercel serverless arc only supported till 250 mb 
+2. Tried to deploy backend on render first , but supabase was in ipv6 render free tier does not support ipv6 so it was not working
