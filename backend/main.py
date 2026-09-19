@@ -41,12 +41,12 @@ app.include_router(contact_us.router)
 app.include_router(stats.router)
 
 
-@app.get('/')
+@app.api_route('/', methods=['GET', 'HEAD'])
 def home():
     return {"message": "Hello, World!"}
 
 
-@app.get('/health')
+@app.api_route('/health', methods=['GET', 'HEAD'])
 def health():
     from sqlalchemy import text
     from database import engine
