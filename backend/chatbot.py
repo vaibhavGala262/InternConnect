@@ -133,16 +133,16 @@ def _finalize_node(state: ChatState) -> ChatState:
 def _build_graph():
     graph = StateGraph(ChatState)
 
-    graph.add_node("intent", _intent_node)
-    graph.add_node("context", _context_node)
-    graph.add_node("generate", _generation_node)
-    graph.add_node("finalize", _finalize_node)
+    graph.add_node("classify_intent", _intent_node)
+    graph.add_node("build_context", _context_node)
+    graph.add_node("generate_reply", _generation_node)
+    graph.add_node("finalize_reply", _finalize_node)
 
-    graph.set_entry_point("intent")
-    graph.add_edge("intent", "context")
-    graph.add_edge("context", "generate")
-    graph.add_edge("generate", "finalize")
-    graph.add_edge("finalize", END)
+    graph.set_entry_point("classify_intent")
+    graph.add_edge("classify_intent", "build_context")
+    graph.add_edge("build_context", "generate_reply")
+    graph.add_edge("generate_reply", "finalize_reply")
+    graph.add_edge("finalize_reply", END)
 
     return graph.compile()
 
