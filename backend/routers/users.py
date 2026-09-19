@@ -107,7 +107,10 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
     try:
         db.commit()
         db.refresh(new_user)
-        await send_email(EmailSchema(email=user_data.email))
+        try:
+            await send_email(EmailSchema(email=user_data.email))
+        except Exception as email_err:
+            print(f"Email send failed (non-blocking): {email_err}")
         return new_user
     except IntegrityError as e:
         db.rollback()
@@ -117,7 +120,7 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
         )
     except Exception as e:
         db.rollback()
-        print(f"Register error: {e}")
+        print(f"Register error: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed. Please try again."
