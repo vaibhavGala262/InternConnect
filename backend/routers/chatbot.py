@@ -48,6 +48,8 @@ async def ask_chatbot(
         reply = get_langgraph_response(text.message, current_user, db)
         return {"chatbot_reply": reply}
     except Exception as e:
-        print(f"LangGraph error: {e}")
-        raise HTTPException(status_code=500, detail="Something went wrong with chatbot agent")
+        import traceback
+        print(f"LangGraph error: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Chatbot error: {type(e).__name__}: {e}")
     
