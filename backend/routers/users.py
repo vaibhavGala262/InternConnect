@@ -120,10 +120,12 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
         )
     except Exception as e:
         db.rollback()
+        import traceback
         print(f"Register error: {type(e).__name__}: {e}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed. Please try again."
+            detail=f"Registration failed: {type(e).__name__}: {e}"
         )
     
 
