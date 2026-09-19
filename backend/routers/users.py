@@ -82,7 +82,8 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
             roll_no = user_data.roll_no , 
             graduation_year= user_data.graduation_year , 
             gpa = user_data.gpa, 
-            type = user_data.type 
+            type = user_data.type,
+            sap_id = user_data.sap_id
 
         )
 
@@ -91,10 +92,11 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
             email = user_data.email , 
             password= hash(user_data.password) , 
             first_name = user_data.first_name  , 
-            last_name = user_data.last_name , 
+            last_name = user_data.last_name ,
             department  =user_data.department , 
             start_date = user_data.start_date ,
-            type = user_data.type 
+            type = user_data.type,
+            teacher_id = user_data.teacher_id
         )
     
 
