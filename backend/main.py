@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import JSONResponse
 import uvicorn
 from routers import users  , auth, internships, messages  , chatrooms, internships_logic , chatbot, stats,contact_us
 from database import get_db
@@ -6,7 +7,6 @@ import models
 from fastapi.middleware.cors import CORSMiddleware
 import os 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
 
 
 PORT = os.getenv('PORT')
@@ -36,6 +36,14 @@ app.include_router(internships_logic.router)
 app.include_router(chatbot.router)
 app.include_router(contact_us.router)
 app.include_router(stats.router)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.api_route('/', methods=['GET', 'HEAD'])

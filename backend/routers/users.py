@@ -113,6 +113,13 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e.orig)
         )
+    except Exception as e:
+        db.rollback()
+        print(f"Register error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed. Please try again."
+        )
     
 
 # update main teacher can change teacher details n student can change student but not interchange
