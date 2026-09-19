@@ -6,7 +6,7 @@ from typing import List
 from schemas import InternshipOut , StudentOut , EnrollIn, InternshipStudentOut
 from sqlalchemy.exc import SQLAlchemyError
 import models
-import pandas as pd 
+from openpyxl import Workbook
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 
@@ -132,11 +132,21 @@ def get_enrolled_students_inexcel(
         }
         for s in results
     ]
-    df = pd.DataFrame(data)
-    output= BytesIO()
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=True ,  sheet_name=f"StudentsEnrolled_{internship_id}")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"StudentsEnrolled_{internship_id}"
+
+    if data:
+        headers = [""] + list(data[0].keys())
+        ws.append(headers)
+        for i, row in enumerate(data):
+            ws.append([i] + [row.get(header) for header in data[0].keys()])
+    else:
+        ws.append([""])
+
+    output = BytesIO()
+    wb.save(output)
     output.seek(0)
 
     return StreamingResponse(

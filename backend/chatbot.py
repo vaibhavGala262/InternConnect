@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict, Optional, TypedDict
 
 from dotenv import load_dotenv
-from google import genai
+import httpx
 from langgraph.graph import END, StateGraph
 from sqlalchemy.orm import Session
 
@@ -20,24 +20,46 @@ class ChatState(TypedDict, total=False):
     final_reply: str
 
 
-_compiled_graph = None
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-
-def _get_client() -> genai.Client:
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in environment variables.")
-    return genai.Client(api_key=api_key)
+# Free-tier OpenRouter model by default (no credits required to call).
+# Override with OPENROUTER_MODEL env var when you want a different one.
+_DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
 
 def _call_llm(prompt: str) -> str:
-    client = _get_client()
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-    )
-    return (response.text or "").strip()
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ValueError("OPENROUTER_API_KEY not found in environment variables.")
+
+    model = os.getenv("OPENROUTER_MODEL", _DEFAULT_MODEL)
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://internconnect-s8xx.onrender.com",
+        "X-Title": "InternConnect",
+    }
+    with httpx.Client(timeout=120.0) as client:
+        response = client.post(OPENROUTER_API_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+    try:
+        return (data["choices"][0]["message"]["content"] or "").strip()
+    except (KeyError, IndexError, TypeError):
+        return ""
+
+
+_compiled_graph = None
+
+
+
 
 
 def _intent_node(state: ChatState) -> ChatState:

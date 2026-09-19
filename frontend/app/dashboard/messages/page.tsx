@@ -9,12 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Send, MessageSquare, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import ChatService from "@/services/chat-service"
-import websocketService from "@/services/websocket-service"
 import AuthService from "@/services/auth-service"
 import { ChatWithTeacher } from "@/components/chat-with-teacher"
 import { ChatbotDialog } from "@/components/chatbot-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { UserAvatar } from "@/components/user-avatar"
+import { supabase } from "@/lib/supabase"
 
 interface ChatRoom {
   id: number
@@ -110,9 +110,6 @@ export default function MessagesPage() {
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
           }, 100)
-
-          // Connect to WebSocket
-          websocketService.connect(selectedRoom)
         } catch (error) {
           console.error("Error fetching messages:", error)
           toast({
@@ -124,67 +121,65 @@ export default function MessagesPage() {
       }
 
       fetchMessages()
-
-      // Setup WebSocket connection handlers
-      const onConnectHandler = () => {
-        setIsConnected(true)
-        setConnectionError(null)
-      }
-
-      const onDisconnectHandler = () => {
-        setIsConnected(false)
-      }
-
-      const onErrorHandler = () => {
-        setConnectionError("Connection lost. Attempting to reconnect...")
-      }
-
-      // Register handlers
-      const removeConnectHandler = websocketService.onConnect(onConnectHandler)
-      const removeDisconnectHandler = websocketService.onDisconnect(onDisconnectHandler)
-      const removeErrorHandler = websocketService.onError(onErrorHandler)
-
-      // Cleanup WebSocket connection
-      return () => {
-        removeConnectHandler()
-        removeDisconnectHandler()
-        removeErrorHandler()
-        websocketService.disconnect()
-      }
     }
   }, [selectedRoom, toast])
 
-  // Handle WebSocket messages
+  // Subscribe to Supabase Realtime for new messages in the selected room
   useEffect(() => {
-    if (selectedRoom) {
-      const removeMessageHandler = websocketService.onMessage((data) => {
-        console.log("WebSocket message received:", data)
+    if (!selectedRoom) return
 
-        // Check if it's a status update
-        if (data.status === "delivered") {
-          console.log("Message delivered:", data.message_id)
-          return
-        }
+    const channel = supabase
+      .channel(`room-${selectedRoom}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `chat_room_id=eq.${selectedRoom}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: number
+            content: string
+            sender_id: number
+            chat_room_id: number
+            sent_at: string
+            is_read: boolean
+          }
 
-        // It's a new message
-        if (data.id && data.content) {
           setMessages((prev) => {
-            // Check if message already exists
-            const exists = prev.some((msg) => msg.id === data.id)
+            const exists = prev.some((msg) => msg.id === row.id)
             if (exists) return prev
-            return [...prev, data]
+            return [
+              ...prev,
+              {
+                id: row.id,
+                content: row.content,
+                sender_id: row.sender_id,
+                chat_room_id: row.chat_room_id,
+                sent_at: row.sent_at,
+                is_read: row.is_read,
+              },
+            ]
           })
 
-          // Scroll to bottom
           setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
           }, 100)
         }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === "SUBSCRIBED")
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setConnectionError("Connection lost. Reconnecting...")
+        } else if (status === "SUBSCRIBED") {
+          setConnectionError(null)
+        }
       })
 
-      return () => {
-        removeMessageHandler()
-      }
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [selectedRoom])
 
@@ -193,35 +188,9 @@ export default function MessagesPage() {
       try {
         setIsSending(true)
 
-        // Send message via WebSocket if connected, otherwise use HTTP
-        if (websocketService.isConnected()) {
-          const sent = websocketService.sendMessage(newMessage)
-
-          if (sent) {
-            // Add message to UI immediately (optimistic update)
-            const tempMessage: Message = {
-              id: Date.now(), // Temporary ID
-              content: newMessage,
-              sender_id: userId || 0,
-              chat_room_id: selectedRoom,
-              sent_at: new Date().toISOString(),
-              is_read: false,
-            }
-
-            setMessages((prev) => [...prev, tempMessage])
-            setNewMessage("")
-          } else {
-            // WebSocket failed to send, fallback to HTTP
-            const sentMessage = await ChatService.sendMessage(selectedRoom, newMessage)
-            setMessages((prev) => [...prev, sentMessage])
-            setNewMessage("")
-          }
-        } else {
-          // Fallback to HTTP
-          const sentMessage = await ChatService.sendMessage(selectedRoom, newMessage)
-          setMessages((prev) => [...prev, sentMessage])
-          setNewMessage("")
-        }
+        const sentMessage = await ChatService.sendMessage(selectedRoom, newMessage)
+        setMessages((prev) => [...prev, sentMessage])
+        setNewMessage("")
 
         // Scroll to bottom
         setTimeout(() => {
@@ -501,9 +470,9 @@ export default function MessagesPage() {
                         handleSendMessage()
                       }
                     }}
-                    disabled={isSending || !isConnected}
+                    disabled={isSending}
                   />
-                  <Button size="icon" onClick={handleSendMessage} disabled={isSending || !isConnected}>
+                  <Button size="icon" onClick={handleSendMessage} disabled={isSending}>
                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>

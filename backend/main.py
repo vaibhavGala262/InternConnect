@@ -1,9 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 import uvicorn
 from routers import users  , auth, internships, messages  , chatrooms, internships_logic , chatbot, stats,contact_us
-from routers.websocket.endpoint import websocket_endpoint
 from database import get_db
-from database import Base  , engine
 import models
 from fastapi.middleware.cors import CORSMiddleware
 import os 
@@ -11,13 +9,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 
-
 PORT = os.getenv('PORT')
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -39,7 +35,6 @@ app.include_router(auth.router)
 app.include_router(internships.router)
 app.include_router(messages.router)
 app.include_router(chatrooms.router)
-app.add_api_websocket_route("/ws/chat/{room_id}", websocket_endpoint)
 app.include_router(internships_logic.router)
 app.include_router(chatbot.router)
 app.include_router(contact_us.router)
@@ -49,6 +44,21 @@ app.include_router(stats.router)
 @app.get('/')
 def home():
     return {"message": "Hello, World!"}
+
+
+@app.get('/health')
+def health():
+    from sqlalchemy import text
+    from database import engine
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "error", "database": "unreachable"},
+        )
 
 
 if __name__ =='__main__':

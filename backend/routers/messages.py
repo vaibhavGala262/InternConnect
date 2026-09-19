@@ -1,15 +1,19 @@
-import models 
-from fastapi import HTTPException , FastAPI , Depends , status , Response , APIRouter
-from schemas import ChatRoomResponse , ChatRoomCreate , MessageResponse 
-from database import get_db 
-from sqlalchemy.orm import Session , joinedload
-from oauth import get_current_user
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session, joinedload
 
-router= APIRouter(
-    prefix='/chat'
-)
+import models
+from database import get_db
+from oauth import get_current_user
+from schemas import ChatRoomCreate, ChatRoomResponse, MessageResponse
+
+router = APIRouter(prefix="/chat")
+
+
+class MessageCreate(BaseModel):
+    content: str
 
 @router.get("/rooms/{room_id}/messages", response_model=List[MessageResponse])
 async def get_room_messages(
@@ -65,3 +69,45 @@ async def get_room_messages(
     )
     
     return messages
+
+
+@router.post("/rooms/{room_id}/messages")
+async def create_room_message(
+    room_id: int,
+    payload: MessageCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    chat_room = db.query(models.ChatRoom).filter(models.ChatRoom.id == room_id).first()
+    if not chat_room:
+        raise HTTPException(status_code=404, detail="Chat room not found")
+
+    if current_user.type == "student":
+        student = db.query(models.Student).filter(models.Student.user_id == current_user.id).first()
+        if not student or chat_room.student_id != student.sap_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
+    elif current_user.type == "teacher":
+        teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
+        if not teacher or chat_room.teacher_id != teacher.teacher_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
+    else:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    message = models.ChatMessage(
+        chat_room_id=room_id,
+        sender_id=current_user.id,
+        content=payload.content,
+        is_read=False,
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+
+    return {
+        "id": message.id,
+        "content": message.content,
+        "sender_id": message.sender_id,
+        "chat_room_id": message.chat_room_id,
+        "sent_at": message.sent_at,
+        "is_read": message.is_read,
+    }
