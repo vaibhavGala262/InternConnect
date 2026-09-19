@@ -20,6 +20,10 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "https://intern-connect-seven.vercel.app" ,
+        "http://localhost:3000"
+    ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
