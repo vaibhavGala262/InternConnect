@@ -33,6 +33,7 @@ import InternshipService from "@/services/internship-service"
 interface EnrolledStudent {
   id: number
   enrolled_at: string
+  status: "pending" | "reviewing" | "interview" | "accepted" | "rejected"
   student: Student
   internship: Internship
 }
@@ -79,6 +80,7 @@ export default function InternshipDetailsPage() {
   const [sortBy, setSortBy] = useState("name")
   const [userType, setUserType] = useState<"student" | "teacher" | null>(null)
   const [isDownloadingExcel, setIsDownloadingExcel] = useState(false)
+  const [profileImageUrls, setProfileImageUrls] = useState<Record<number, string>>({})
 
   const internshipId = pathname ? Number.parseInt(pathname.split("/").pop() || "0") : 0
 
@@ -127,6 +129,47 @@ export default function InternshipDetailsPage() {
 
     fetchInternshipDetails()
   }, [params.id, router, toast])
+
+  useEffect(() => {
+    let cancelled = false
+    const objectUrls: string[] = []
+
+    const loadProfileImages = async () => {
+      const token = localStorage.getItem("token")
+      const uniqueUserIds = [...new Set(enrolledStudents.map((entry) => entry.student.id))]
+      const imageEntries = await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-image/${userId}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            })
+            if (!response.ok) return null
+
+            const url = URL.createObjectURL(await response.blob())
+            objectUrls.push(url)
+            return [userId, url] as const
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      if (!cancelled) {
+        setProfileImageUrls(Object.fromEntries(imageEntries.filter((entry): entry is readonly [number, string] => entry !== null)))
+      }
+    }
+
+    if (enrolledStudents.length > 0) {
+      loadProfileImages()
+    } else {
+      setProfileImageUrls({})
+    }
+
+    return () => {
+      cancelled = true
+      objectUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [enrolledStudents])
 
   // Filter and sort students
   useEffect(() => {
@@ -291,11 +334,11 @@ export default function InternshipDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Enrolled Students Section */}
+      {/* Applications Section */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold">Enrolled Students</h2>
+        <h2 className="text-2xl font-bold">Applications</h2>
         <p className="text-muted-foreground">
-          {enrolledStudents.length} student{enrolledStudents.length !== 1 ? "s" : ""} enrolled in this internship
+          {enrolledStudents.length} application{enrolledStudents.length !== 1 ? "s" : ""} for this internship
         </p>
       </div>
 
@@ -320,8 +363,8 @@ export default function InternshipDetailsPage() {
               <SelectItem value="name">Name (A-Z)</SelectItem>
               <SelectItem value="gpa-high">GPA (High to Low)</SelectItem>
               <SelectItem value="gpa-low">GPA (Low to High)</SelectItem>
-              <SelectItem value="recent">Recently Enrolled</SelectItem>
-              <SelectItem value="oldest">Oldest Enrolled</SelectItem>
+               <SelectItem value="recent">Recently Applied</SelectItem>
+               <SelectItem value="oldest">Oldest Applied</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -352,11 +395,11 @@ export default function InternshipDetailsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No students found</h3>
+                <h3 className="text-lg font-medium">No applications found</h3>
                 <p className="text-muted-foreground text-center mt-2">
                   {searchTerm
                     ? "Try adjusting your search term to find students."
-                    : "No students have enrolled in this internship yet."}
+                     : "No students have applied for this internship yet."}
                 </p>
               </CardContent>
             </Card>
@@ -368,10 +411,10 @@ export default function InternshipDetailsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src="/placeholder.svg" alt={`${entry.student.first_name} ${entry.student.last_name}`} />
+                          <AvatarImage src={profileImageUrls[entry.student.id]} alt={`${entry.student.first_name} ${entry.student.last_name}`} />
                           <AvatarFallback>
-                            {entry.student.first_name}
-                            {entry.student.last_name}
+                            {entry.student.first_name[0]}
+                            {entry.student.last_name[0]}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -402,8 +445,9 @@ export default function InternshipDetailsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>Enrolled: {new Date(entry.enrolled_at.replace(/\.(\d{3})\d*/, '.$1')).toString()}</span>
+                        <span>Applied: {new Date(entry.enrolled_at.replace(/\.(\d{3})\d*/, '.$1')).toLocaleDateString()}</span>
                       </div>
+                      <Badge variant="secondary" className="capitalize">{entry.status}</Badge>
                     </div>
                   </CardContent>
                   <CardFooter className="flex gap-2 pt-2">
@@ -437,11 +481,11 @@ export default function InternshipDetailsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No students found</h3>
+                <h3 className="text-lg font-medium">No applications found</h3>
                 <p className="text-muted-foreground text-center mt-2">
                   {searchTerm
                     ? "Try adjusting your search term to find students."
-                    : "No students have enrolled in this internship yet."}
+                    : "No students have applied for this internship yet."}
                 </p>
               </CardContent>
             </Card>
@@ -453,7 +497,7 @@ export default function InternshipDetailsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src="/placeholder.svg" alt={`${entry.student.first_name} ${entry.student.last_name}`} />
+                          <AvatarImage src={profileImageUrls[entry.student.id]} alt={`${entry.student.first_name} ${entry.student.last_name}`} />
                           <AvatarFallback>
                             {entry.student.first_name[0]}
                             {entry.student.last_name[0]}

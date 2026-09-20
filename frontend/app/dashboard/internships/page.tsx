@@ -105,12 +105,11 @@ export default function InternshipsPage() {
 
   const handleApply = async (internshipId: number ,  applicationLink : string )    => {
     try {
-      
-      // await InternshipService.enrollInInternship(internshipId)
-      // toast({
-      //   title: "Application Submitted",
-      //   description: "Your application has been submitted successfully!",
-      // })
+      await InternshipService.enrollInInternship(internshipId)
+      toast({
+        title: "Application tracked",
+        description: "Your application is now pending. Opening the company application page...",
+      })
       window.location.href = applicationLink;
     } catch (error) {
       console.error("Error applying for internship:", error)
@@ -284,5 +283,4 @@ export default function InternshipsPage() {
     </div>
   )
 }
-
 

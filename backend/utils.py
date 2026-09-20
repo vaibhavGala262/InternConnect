@@ -8,6 +8,10 @@ from oauth import verify_access_token
 import models
 pwd_context= CryptContext(schemes=["bcrypt"],deprecated = "auto")
 from schemas import EmailSchema
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -50,17 +54,15 @@ async def send_email(data: EmailSchema):
         subtype="plain"
     )
 
-    try :
-        fm = FastMail(conf)
+    fm = FastMail(conf)
+    try:
         await fm.send_message(message=message)
-        print("Mail Is Sent")
-        return {
-        "message": "email sent successfully"
-        }
-    except Exception as e :
-        return {
-            "message": f"An Error occured {e}"
-        }
+    except Exception:
+        logger.exception("Registration email delivery failed")
+        raise
+
+    logger.info("Registration email sent successfully")
+    return {"message": "email sent successfully"}
 
 
 

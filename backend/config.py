@@ -1,9 +1,17 @@
 from fastapi_mail import ConnectionConfig
 import os
+import logging
 from dotenv import load_dotenv
 
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+_mail_required = ("MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_FROM", "MAIL_SERVER")
+_mail_missing = [name for name in _mail_required if not os.getenv(name)]
+if _mail_missing:
+    logger.warning("Email is not configured; missing variables: %s", ", ".join(_mail_missing))
 
 
 conf = ConnectionConfig(

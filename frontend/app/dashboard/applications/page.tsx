@@ -1,163 +1,141 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Briefcase, Calendar, MessageSquare, User } from "lucide-react"
+import { Briefcase, Calendar, Loader2, MessageSquare, User } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/components/ui/use-toast"
+import InternshipService from "@/services/internship-service"
+
+type ApplicationStatus = "pending" | "reviewing" | "interview" | "accepted" | "rejected"
 
 interface Application {
   id: number
-  internshipId: number
-  internshipTitle: string
-  company: string
-  teacherName: string
-  teacherId: number
-  appliedDate: string
-  status: "pending" | "reviewing" | "interview" | "accepted" | "rejected"
+  enrolled_at: string
+  status: ApplicationStatus
+  student: {
+    first_name: string
+    last_name: string
+    email: string
+  }
+  internship: {
+    id: number
+    title: string
+    company_name: string | null
+    teacher: {
+      first_name: string
+      last_name: string
+    }
+  }
 }
 
-const getStatusBadge = (status: Application["status"]) => {
+const statuses: ApplicationStatus[] = ["pending", "reviewing", "interview", "accepted", "rejected"]
+
+function getStatusBadge(status: ApplicationStatus) {
   switch (status) {
     case "pending":
       return <Badge variant="outline">Pending</Badge>
     case "reviewing":
       return <Badge variant="secondary">Under Review</Badge>
     case "interview":
-      return (
-        <Badge variant="default" className="bg-blue-500">
-          Interview
-        </Badge>
-      )
+      return <Badge className="bg-blue-500">Interview</Badge>
     case "accepted":
-      return (
-        <Badge variant="default" className="bg-green-500">
-          Accepted
-        </Badge>
-      )
+      return <Badge className="bg-green-500">Accepted</Badge>
     case "rejected":
       return <Badge variant="destructive">Rejected</Badge>
-    default:
-      return <Badge variant="outline">Unknown</Badge>
   }
 }
 
 export default function ApplicationsPage() {
   const [userType, setUserType] = useState<"student" | "teacher" | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
+
+  const loadApplications = async () => {
+    try {
+      setIsLoading(true)
+      const type = localStorage.getItem("userType") as "student" | "teacher" | null
+      setUserType(type)
+      const data = type === "teacher"
+        ? await InternshipService.getReceivedApplications()
+        : await InternshipService.getMyApplications()
+      setApplications(data)
+    } catch (error) {
+      console.error("Error loading applications:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load applications.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    // In a real app, you would fetch user data from your API
-    const storedUserType = localStorage.getItem("userType") as "student" | "teacher" | null
-    setUserType(storedUserType)
-
-    // Mock applications data
-    const mockApplications: Application[] = [
-      {
-        id: 1,
-        internshipId: 1,
-        internshipTitle: "Full Stack Developer Intern",
-        company: "Tech Solutions Inc.",
-        teacherName: "Dr. Sarah Williams",
-        teacherId: 1,
-        appliedDate: "2024-04-12",
-        status: "pending",
-      },
-      {
-        id: 2,
-        internshipId: 2,
-        internshipTitle: "Machine Learning Research Assistant",
-        company: "AI Research Lab",
-        teacherName: "Dr. Michael Chen",
-        teacherId: 2,
-        appliedDate: "2024-04-10",
-        status: "reviewing",
-      },
-      {
-        id: 3,
-        internshipId: 4,
-        internshipTitle: "Data Science Intern",
-        company: "Analytics Co.",
-        teacherName: "Dr. Robert Johnson",
-        teacherId: 4,
-        appliedDate: "2024-04-05",
-        status: "interview",
-      },
-      {
-        id: 4,
-        internshipId: 5,
-        internshipTitle: "Mobile App Developer",
-        company: "AppWorks",
-        teacherName: "Prof. David Miller",
-        teacherId: 5,
-        appliedDate: "2024-04-01",
-        status: "accepted",
-      },
-      {
-        id: 5,
-        internshipId: 6,
-        internshipTitle: "Cybersecurity Intern",
-        company: "SecureTech",
-        teacherName: "Dr. Emily Wilson",
-        teacherId: 6,
-        appliedDate: "2024-03-25",
-        status: "rejected",
-      },
-    ]
-
-    setApplications(mockApplications)
+    loadApplications()
   }, [])
+
+  const updateStatus = async (applicationId: number, status: ApplicationStatus) => {
+    try {
+      const updated = await InternshipService.updateApplicationStatus(applicationId, status)
+      setApplications((previous) => previous.map((application) => (
+        application.id === applicationId ? { ...application, status: updated.status } : application
+      )))
+    } catch (error) {
+      console.error("Error updating application:", error)
+      toast({ title: "Error", description: "Failed to update application status.", variant: "destructive" })
+    }
+  }
+
+  const withdrawApplication = async (applicationId: number) => {
+    try {
+      await InternshipService.withdrawApplication(applicationId)
+      setApplications((previous) => previous.filter((application) => application.id !== applicationId))
+    } catch (error) {
+      console.error("Error withdrawing application:", error)
+      toast({ title: "Error", description: "Failed to withdraw application.", variant: "destructive" })
+    }
+  }
+
+  if (isLoading) {
+    return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+  }
 
   return (
     <div className="flex flex-col p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{userType === "student" ? "My Applications" : "Student Applications"}</h1>
         <p className="text-muted-foreground">
-          {userType === "student"
-            ? "Track the status of your internship applications"
-            : "Review and manage student applications for your internships"}
+          {userType === "student" ? "Track your real internship applications" : "Review applications for your internships"}
         </p>
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="reviewing">Under Review</TabsTrigger>
-          <TabsTrigger value="interview">Interview</TabsTrigger>
-          <TabsTrigger value="accepted">Accepted</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="all">All ({applications.length})</TabsTrigger>
+          {statuses.map((status) => (
+            <TabsTrigger key={status} value={status}>
+              {status === "reviewing" ? "Under Review" : status[0].toUpperCase() + status.slice(1)}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {applications.map((application) => (
-            <ApplicationCard key={application.id} application={application} userType={userType || "student"} />
-          ))}
+          <ApplicationList applications={applications} userType={userType || "student"} onStatusChange={updateStatus} onWithdraw={withdrawApplication} />
         </TabsContent>
-
-        {["pending", "reviewing", "interview", "accepted", "rejected"].map((status) => (
+        {statuses.map((status) => (
           <TabsContent key={status} value={status} className="space-y-4">
-            {applications
-              .filter((app) => app.status === status)
-              .map((application) => (
-                <ApplicationCard key={application.id} application={application} userType={userType || "student"} />
-              ))}
-
-            {applications.filter((app) => app.status === status).length === 0 && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-6">
-                  <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No applications found</h3>
-                  <p className="text-muted-foreground text-center mt-2">
-                    {userType === "student"
-                      ? `You don't have any ${status} applications.`
-                      : `You don't have any ${status} applications from students.`}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <ApplicationList
+              applications={applications.filter((application) => application.status === status)}
+              userType={userType || "student"}
+              onStatusChange={updateStatus}
+              onWithdraw={withdrawApplication}
+            />
           </TabsContent>
         ))}
       </Tabs>
@@ -165,92 +143,108 @@ export default function ApplicationsPage() {
   )
 }
 
+function ApplicationList({
+  applications,
+  userType,
+  onStatusChange,
+  onWithdraw,
+}: {
+  applications: Application[]
+  userType: "student" | "teacher"
+  onStatusChange: (applicationId: number, status: ApplicationStatus) => void
+  onWithdraw: (applicationId: number) => void
+}) {
+  if (applications.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <Briefcase className="mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="text-lg font-medium">No applications found</h3>
+          <p className="mt-2 text-muted-foreground">
+            {userType === "student" ? "Applications you start will appear here." : "Student applications for your internships will appear here."}
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return applications.map((application) => (
+    <ApplicationCard
+      key={application.id}
+      application={application}
+      userType={userType}
+      onStatusChange={onStatusChange}
+      onWithdraw={onWithdraw}
+    />
+  ))
+}
+
 function ApplicationCard({
   application,
   userType,
+  onStatusChange,
+  onWithdraw,
 }: {
   application: Application
   userType: "student" | "teacher"
+  onStatusChange: (applicationId: number, status: ApplicationStatus) => void
+  onWithdraw: (applicationId: number) => void
 }) {
+  const studentName = `${application.student.first_name} ${application.student.last_name}`
+  const teacherName = `${application.internship.teacher.first_name} ${application.internship.teacher.last_name}`
+
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>{application.internshipTitle}</CardTitle>
-            <CardDescription className="flex items-center gap-1 mt-1">
+            <CardTitle>{application.internship.title}</CardTitle>
+            <CardDescription className="mt-1 flex items-center gap-1">
               <Briefcase className="h-3 w-3" />
-              {application.company}
+              {application.internship.company_name || "Company not specified"}
             </CardDescription>
           </div>
           {getStatusBadge(application.status)}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">
-              {userType === "student" ? `Posted by: ${application.teacherName}` : "Student: Alex Johnson"}
-            </span>
+            <span className="text-sm">{userType === "student" ? `Posted by: ${teacherName}` : `Student: ${studentName}`}</span>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Applied on: {new Date(application.appliedDate).toLocaleDateString()}</span>
+            <span className="text-sm">Applied on: {new Date(application.enrolled_at).toLocaleDateString()}</span>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {userType === "student" ? (
             <>
-              <Link href={`/dashboard/internships/${application.internshipId}`}>
-                <Button variant="outline" size="sm">
-                  View Internship
-                </Button>
+              <Link href={`/dashboard/internships/${application.internship.id}`}>
+                <Button variant="outline" size="sm">View Internship</Button>
               </Link>
-              <Link href={`/dashboard/messages`}>
-                <Button variant="outline" size="sm">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Message Teacher
-                </Button>
+              <Link href="/dashboard/messages">
+                <Button variant="outline" size="sm"><MessageSquare className="mr-2 h-4 w-4" />Message Teacher</Button>
               </Link>
               {application.status === "pending" && (
-                <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
+                <Button variant="outline" size="sm" className="text-red-500" onClick={() => onWithdraw(application.id)}>
                   Withdraw Application
                 </Button>
               )}
             </>
           ) : (
             <>
-              <Link href={`/dashboard/applications/${application.id}`}>
-                <Button variant="outline" size="sm">
-                  Review Application
-                </Button>
+              <Link href="/dashboard/messages">
+                <Button variant="outline" size="sm"><MessageSquare className="mr-2 h-4 w-4" />Message Student</Button>
               </Link>
-              <Link href={`/dashboard/messages`}>
-                <Button variant="outline" size="sm">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Message Student
-                </Button>
-              </Link>
-              {application.status === "pending" && (
-                <Button variant="outline" size="sm" className="text-blue-500 hover:text-blue-700">
-                  Mark as Reviewing
-                </Button>
-              )}
-              {application.status === "reviewing" && (
-                <Button variant="outline" size="sm" className="text-blue-500 hover:text-blue-700">
-                  Schedule Interview
-                </Button>
-              )}
+              {application.status === "pending" && <Button size="sm" variant="outline" onClick={() => onStatusChange(application.id, "reviewing")}>Mark as Reviewing</Button>}
+              {application.status === "reviewing" && <Button size="sm" variant="outline" onClick={() => onStatusChange(application.id, "interview")}>Schedule Interview</Button>}
               {application.status === "interview" && (
                 <>
-                  <Button variant="outline" size="sm" className="text-green-500 hover:text-green-700">
-                    Accept
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
-                    Reject
-                  </Button>
+                  <Button size="sm" className="bg-green-600" onClick={() => onStatusChange(application.id, "accepted")}>Accept</Button>
+                  <Button size="sm" variant="destructive" onClick={() => onStatusChange(application.id, "rejected")}>Reject</Button>
                 </>
               )}
             </>

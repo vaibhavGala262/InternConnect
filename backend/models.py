@@ -77,6 +77,10 @@ class Internship(Base):
     def validate_application_link(self, key, link):
         assert link.startswith(('http://', 'https://')), "Invalid URL"
         return link
+
+    @property
+    def applicants_count(self):
+        return len(self.saved_by)
     
     __table_args__ = (
         UniqueConstraint('title', 'company_name', name='uq_title_company'),
@@ -90,6 +94,8 @@ class Enrolled(Base):
     student_id = Column(Integer, ForeignKey('students.sap_id') , nullable= False)
     internship_id = Column(Integer, ForeignKey('internships.id') , nullable= False)
     enrolled_at  = Column(DateTime , default=datetime.utcnow )
+    status = Column(String(20), nullable=False, default="pending", server_default="pending")
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     student =relationship("Student" , back_populates='enrolled_in')
     internship = relationship("Internship", back_populates="saved_by")

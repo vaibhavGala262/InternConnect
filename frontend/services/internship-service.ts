@@ -64,6 +64,27 @@ const InternshipService = {
     })
   },
 
+  getMyApplications: async () => {
+    return await apiRequest("/applications/mine")
+  },
+
+  getReceivedApplications: async () => {
+    return await apiRequest("/applications/received")
+  },
+
+  updateApplicationStatus: async (applicationId: number, status: string) => {
+    return await apiRequest(`/applications/${applicationId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    })
+  },
+
+  withdrawApplication: async (applicationId: number) => {
+    return await apiRequest(`/applications/${applicationId}`, {
+      method: "DELETE",
+    })
+  },
+
   getEnrolledStudents: async (internshipId: number) => {
     return await apiRequest(`/enrolled_students/${internshipId}`)
   },

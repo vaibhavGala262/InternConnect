@@ -1,6 +1,6 @@
 from  datetime import date
 from pydantic import BaseModel, ConfigDict, Field,SkipValidation , EmailStr ,conint , validator  
-from typing import Optional  , List
+from typing import Optional  , List, Literal
 from datetime import datetime
 
 
@@ -115,6 +115,7 @@ class InternshipCreate(BaseModel):
 class InternshipOut(InternshipCreate):
     id :int     
     teacher : TeacherOut
+    applicants_count: int = 0
     model_config = {
         "from_attributes": True
     }
@@ -151,6 +152,8 @@ class InternshipStudentOut(BaseModel):
     internship :InternshipOut 
     id :int 
     enrolled_at :datetime
+    status: Literal["pending", "reviewing", "interview", "accepted", "rejected"]
+    updated_at: Optional[datetime] = None
     class Config:
         orm_mode = True
 
@@ -162,6 +165,9 @@ class UserMessage(BaseModel):
 
 class EnrollIn(BaseModel):
     internship_id: int
+
+class ApplicationStatusUpdate(BaseModel):
+    status: Literal["pending", "reviewing", "interview", "accepted", "rejected"]
 
 class ContactUs(BaseModel):
     name : str 

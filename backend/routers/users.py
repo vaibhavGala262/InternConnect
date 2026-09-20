@@ -8,6 +8,7 @@ from database import get_db
 from sqlalchemy.orm import Session
 from utils import hash
 import models
+import logging
 from typing import Union , List, Optional
 from oauth import get_current_user , create_access_token , verify_access_token
 from sqlalchemy import or_
@@ -21,6 +22,8 @@ router = APIRouter(
     prefix= "/users"  , 
     tags = ["Users"]
 )
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = "user_photos"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -98,8 +101,9 @@ async def post_users(user_data :  Union[StudentCreate, TeacherCreate] , db: Sess
         db.refresh(new_user)
         try:
             await send_email(EmailSchema(email=user_data.email))
-        except Exception as email_err:
-            print(f"Email send failed (non-blocking): {email_err}")
+        except Exception:
+            # Registration remains successful, but the full SMTP traceback is logged.
+            logger.exception("Welcome email could not be sent after registration")
         return new_user
     except IntegrityError as e:
         db.rollback()
