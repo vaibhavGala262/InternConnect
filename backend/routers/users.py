@@ -33,33 +33,21 @@ def search_users(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
-    """
-    Search for users based on current user's role:
-    - Teachers always search students
-    - Students always search teachers
-    """
-    # Determine target model based on current user's role
-    if current_user.type == 'teacher':
-        target_model = models.Student
-    elif current_user.type == 'student':
-        target_model = models.Teacher
-    else:
-        raise HTTPException(status_code=400, detail="Invalid user role")
-
-    # Base query
-    base_query = db.query(target_model)
+    """Search all other authenticated users for a new conversation."""
+    base_query = db.query(models.User).filter(models.User.id != current_user.id)
 
     # Apply search filter if query provided
     if query:
         base_query = base_query.filter(
             or_(
-                target_model.first_name.ilike(f"%{query}%"),
-                target_model.last_name.ilike(f"%{query}%")
+                models.User.first_name.ilike(f"%{query}%"),
+                models.User.last_name.ilike(f"%{query}%"),
+                models.User.email.ilike(f"%{query}%"),
             )
         )
 
     # Apply pagination
-    users = base_query.order_by(target_model.first_name)\
+    users = base_query.order_by(models.User.first_name)\
                      .limit(limit).offset(offset).all()
 
     if not users:

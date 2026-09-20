@@ -15,6 +15,24 @@ router = APIRouter(prefix="/chat")
 class MessageCreate(BaseModel):
     content: str
 
+
+def _require_participant(db: Session, room_id: int, user_id: int) -> models.ChatRoom:
+    room = db.query(models.ChatRoom).filter(models.ChatRoom.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Chat room not found")
+
+    participant = (
+        db.query(models.ChatRoomParticipant)
+        .filter(
+            models.ChatRoomParticipant.room_id == room_id,
+            models.ChatRoomParticipant.user_id == user_id,
+        )
+        .first()
+    )
+    if not participant:
+        raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
+    return room
+
 @router.get("/rooms/{room_id}/messages", response_model=List[MessageResponse])
 async def get_room_messages(
     limit: int,
@@ -24,22 +42,7 @@ async def get_room_messages(
     current_user: models.User = Depends(get_current_user)
 ):
     print("Hello")
-    # Ensure the user is a participant in this chat room
-    chat_room = db.query(models.ChatRoom).filter(models.ChatRoom.id == room_id).first()
-    if not chat_room:
-        raise HTTPException(status_code=404, detail="Chat room not found")
-    
-    if current_user.type == "student":
-        student = db.query(models.Student).filter(models.Student.user_id == current_user.id).first()
-        print("Hello")
-        if chat_room.student_id != student.sap_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
-    elif current_user.type == "teacher":
-        teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
-        if chat_room.teacher_id != teacher.teacher_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
-    else:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    chat_room = _require_participant(db, room_id, current_user.id)
     
     # Mark messages from the other user as read
     messages_to_mark = (
@@ -78,20 +81,7 @@ async def create_room_message(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    chat_room = db.query(models.ChatRoom).filter(models.ChatRoom.id == room_id).first()
-    if not chat_room:
-        raise HTTPException(status_code=404, detail="Chat room not found")
-
-    if current_user.type == "student":
-        student = db.query(models.Student).filter(models.Student.user_id == current_user.id).first()
-        if not student or chat_room.student_id != student.sap_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
-    elif current_user.type == "teacher":
-        teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
-        if not teacher or chat_room.teacher_id != teacher.teacher_id:
-            raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
-    else:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    _require_participant(db, room_id, current_user.id)
 
     message = models.ChatMessage(
         chat_room_id=room_id,

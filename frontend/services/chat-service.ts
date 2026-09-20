@@ -1,7 +1,7 @@
 import apiRequest from "@/lib/api-service"
 
 export interface ChatRoomCreate {
-  teacher_id: number
+  user_id: number
 }
 
 export interface MessageSend {
@@ -17,11 +17,8 @@ const ChatService = {
     return await apiRequest("/chat/rooms")
   },
 
-  createChatRoom: async (teacherId: number) => {
-     // NOT { teacher_id: { teacher_id: teacherId } }
-    const payload = { teacher_id: teacherId };
-    console.log(teacherId)
-    console.log("Sending payload:", payload); // should print: { teacher_id: 2 }
+  createChatRoom: async (userId: number) => {
+    const payload = { user_id: userId }
   
     return await apiRequest("/chat/rooms", {
       method: "POST",
@@ -48,8 +45,8 @@ const ChatService = {
     })
   },
 
-  searchTeachers: async (searchTerm: string) => {
-    return await apiRequest(`/users?type=teacher&query=${encodeURIComponent(searchTerm)}`)
+  searchUsers: async (searchTerm: string) => {
+    return await apiRequest(`/users?query=${encodeURIComponent(searchTerm)}`)
   },
 }
 

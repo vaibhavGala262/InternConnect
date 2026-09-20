@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException , APIRouter
-from sqlalchemy import or_
 from sqlalchemy.orm import Session , joinedload
 from database import get_db
 import models
@@ -29,14 +28,12 @@ def get_stats(
             .join(models.Internship, models.Enrolled.internship_id == models.Internship.id)
             .filter(models.Internship.teacher_id == current_user.teacher_id)
         )
-        participant_filter = models.ChatRoom.teacher_id == current_user.teacher_id
     else:
         base_internships = db.query(models.Internship).filter(models.Internship.is_active.is_(True))
         student = db.query(models.Student).filter(models.Student.user_id == current_user.id).first()
         application_query = db.query(models.Enrolled).filter(
             models.Enrolled.student_id == (student.sap_id if student else -1)
         )
-        participant_filter = models.ChatRoom.student_id == (student.sap_id if student else -1)
 
     total_internships =base_internships.count()
     total_internships_in_last_week=base_internships.filter(models.Internship.created_at >=seven_days_ago).count()
@@ -59,8 +56,8 @@ def get_stats(
     unread_messages_base = db.query(models.ChatMessage).join(models.ChatRoom).filter(
     models.ChatMessage.is_read == False,
     models.ChatMessage.sender_id != current_user.id,
-    or_(
-         participant_filter
+    models.ChatRoom.participants.any(
+        models.ChatRoomParticipant.user_id == current_user.id
     )
 )
     total_unread_messages= unread_messages_base.count()

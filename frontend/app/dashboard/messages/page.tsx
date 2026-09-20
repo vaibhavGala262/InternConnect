@@ -10,7 +10,7 @@ import { Search, Send, MessageSquare, Loader2, AlertCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import ChatService from "@/services/chat-service"
 import AuthService from "@/services/auth-service"
-import { ChatWithTeacher } from "@/components/chat-with-teacher"
+import { ChatWithUser } from "@/components/chat-with-user"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { UserAvatar } from "@/components/user-avatar"
 import { supabase } from "@/lib/supabase"
@@ -18,8 +18,6 @@ import { supabase } from "@/lib/supabase"
 interface ChatRoom {
   id: number
   name: string
-  student_id: number
-  teacher_id: number
   created_at: string
   last_message?: string
   unread_count?: number
@@ -230,7 +228,7 @@ export default function MessagesPage() {
         </div>
         <div className="flex gap-2">
       
-        <ChatWithTeacher onChatCreated={fetchChatRooms} userType={userType || "student"} />
+        <ChatWithUser onChatCreated={fetchChatRooms} userType={userType || "student"} />
         </div>
       </div>
 
@@ -266,7 +264,7 @@ export default function MessagesPage() {
                     <div className="text-center py-4 text-muted-foreground">
                       No conversations found.
                       <div className="mt-4">
-                        <ChatWithTeacher onChatCreated={fetchChatRooms} userType={userType || "student"} />
+                        <ChatWithUser onChatCreated={fetchChatRooms} userType={userType || "student"} />
                       </div>
                     </div>
                   ) : (
@@ -486,7 +484,7 @@ export default function MessagesPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">Your Messages</h3>
                 <p className="text-muted-foreground mb-4">Select a conversation or start a new chat with a teacher</p>
-                <ChatWithTeacher onChatCreated={fetchChatRooms} userType={userType || "student"} />
+                <ChatWithUser onChatCreated={fetchChatRooms} userType={userType || "student"} />
               </div>
             </div>
           )}

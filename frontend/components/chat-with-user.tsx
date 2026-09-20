@@ -9,19 +9,18 @@ import { useToast } from "@/components/ui/use-toast"
 import ChatService from "@/services/chat-service"
 import { UserAvatar } from "@/components/user-avatar"
 
-interface Teacher {
+interface User {
   id: number
-  teacher_id: number
   first_name: string
   last_name: string
   email: string
-  department: string
+  type: "student" | "teacher"
 }
 
-export function ChatWithTeacher({ onChatCreated, userType }: { onChatCreated: () => void; userType: string }) {
+export function ChatWithUser({ onChatCreated }: { onChatCreated: () => void; userType: string }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [isCreatingChat, setIsCreatingChat] = useState<number | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const { toast } = useToast()
@@ -31,13 +30,12 @@ export function ChatWithTeacher({ onChatCreated, userType }: { onChatCreated: ()
 
     try {
       setIsSearching(true)
-      const results = await ChatService.searchTeachers(searchTerm)
-      setTeachers(results)
+      setUsers(await ChatService.searchUsers(searchTerm))
     } catch (error) {
-      console.error("Error searching teachers:", error)
+      console.error("Error searching users:", error)
       toast({
         title: "Error",
-        description: "Failed to search for teachers. Please try again.",
+        description: "Failed to search for users. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -45,11 +43,10 @@ export function ChatWithTeacher({ onChatCreated, userType }: { onChatCreated: ()
     }
   }
 
-  const handleCreateChat = async (teacherId: number) => {
+  const handleCreateChat = async (userId: number) => {
     try {
-      setIsCreatingChat(teacherId)
-      console.log(teacherId)
-      await ChatService.createChatRoom( teacherId )
+      setIsCreatingChat(userId)
+      await ChatService.createChatRoom(userId)
       toast({
         title: "Success",
         description: "Chat room created successfully.",
@@ -73,21 +70,21 @@ export function ChatWithTeacher({ onChatCreated, userType }: { onChatCreated: ()
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <UserPlus className="h-4 w-4" />
-          {userType === "teacher" ? "Chat with Colleague" : "Chat with Teacher"}
+          New Chat
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Find a Teacher</DialogTitle>
+          <DialogTitle>Find a User</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Search by name or department..."
+              placeholder="Search by name or email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSearch()
+              onChange={(event) => setSearchTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSearch()
               }}
             />
             <Button onClick={handleSearch} disabled={isSearching}>
@@ -95,32 +92,23 @@ export function ChatWithTeacher({ onChatCreated, userType }: { onChatCreated: ()
             </Button>
           </div>
 
-          <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-            {teachers.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                {isSearching ? "Searching..." : "No teachers found. Try searching by name or department."}
+          <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+            {users.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                {isSearching ? "Searching..." : "No users found. Try a name or email."}
               </p>
             ) : (
-              teachers.map((teacher) => (
-                <div
-                  key={teacher.id}
-                  className="flex items-center justify-between p-3 rounded-md border hover:bg-accent"
-                >
+              users.map((user) => (
+                <div key={user.id} className="flex items-center justify-between rounded-md border p-3 hover:bg-accent">
                   <div className="flex items-center gap-3">
-                    <UserAvatar userId={teacher.id} firstName={teacher.first_name} lastName={teacher.last_name} />
+                    <UserAvatar userId={user.id} firstName={user.first_name} lastName={user.last_name} />
                     <div>
-                      <p className="font-medium">
-                        {teacher.first_name} {teacher.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{teacher.department}</p>
+                      <p className="font-medium">{user.first_name} {user.last_name}</p>
+                      <p className="text-sm capitalize text-muted-foreground">{user.type}</p>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleCreateChat(teacher.id)}
-                    disabled={isCreatingChat === teacher.id}
-                  >
-                    {isCreatingChat === teacher.teacher_id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Chat"}
+                  <Button size="sm" onClick={() => handleCreateChat(user.id)} disabled={isCreatingChat === user.id}>
+                    {isCreatingChat === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Chat"}
                   </Button>
                 </div>
               ))

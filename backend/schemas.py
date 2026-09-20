@@ -132,14 +132,12 @@ class MessageResponse(BaseModel):
     sender: UserInfo
 
 class ChatRoomCreate(BaseModel):
-    teacher_id: int
+    user_id: int
 
 class ChatRoomResponse(BaseModel):
     id: int
     name: str
     user_id :int 
-    student_id: int
-    teacher_id: int
     last_message: Optional[str] = Field(None, description="Preview of the last message")
     last_message_at: Optional[datetime] = Field(None, description="Timestamp of the last message")
     unread_count: int = Field(0, description="Number of unread messages")

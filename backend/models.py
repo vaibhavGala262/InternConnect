@@ -106,19 +106,18 @@ class ChatRoom(Base):
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     
-    # Participants
-    student_id = Column(Integer, ForeignKey('students.sap_id'), nullable=False)
-    teacher_id = Column(Integer, ForeignKey('teachers.teacher_id'), nullable=False)
-    
-    # Relationships
-    student = relationship("Student", backref="chat_rooms")
-    teacher = relationship("Teacher", backref="chat_rooms")
+    participants = relationship("ChatRoomParticipant", back_populates="room", cascade="all, delete-orphan")
     messages = relationship("ChatMessage", back_populates="chat_room", cascade="all, delete-orphan")
-    
-    # Enforce uniqueness for student-teacher pair
-    __table_args__ = (
-        UniqueConstraint('student_id', 'teacher_id', name='uq_student_teacher_chat'),
-    )
+
+
+class ChatRoomParticipant(Base):
+    __tablename__ = "chat_room_participants"
+
+    room_id = Column(Integer, ForeignKey("chat_rooms.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+
+    room = relationship("ChatRoom", back_populates="participants")
+    user = relationship("User")
 
 
 class ChatMessage(Base):
@@ -148,4 +147,3 @@ class ContactUs(Base):
 
 
 
-    
