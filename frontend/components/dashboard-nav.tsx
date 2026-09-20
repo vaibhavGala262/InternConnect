@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, Home, MessageSquare, Briefcase, User, LogOut  , Info, Contact} from "lucide-react"
+import { BookOpen, Home, MessageSquare, Briefcase, User, LogOut, Bot } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -43,6 +43,11 @@ export function DashboardNav({ userType }: { userType: "student" | "teacher" }) 
       icon: MessageSquare,
     },
     {
+      title: "AI Assistant",
+      href: "/dashboard/chatbot",
+      icon: Bot,
+    },
+    {
       title: "Profile",
       href: "/dashboard/profile" ,
       icon : User
@@ -76,6 +81,11 @@ export function DashboardNav({ userType }: { userType: "student" | "teacher" }) 
       title: "Messages",
       href: "/dashboard/messages",
       icon: MessageSquare,
+    },
+    {
+      title: "AI Assistant",
+      href: "/dashboard/chatbot",
+      icon: Bot,
     },
     {
       title: "Profile",

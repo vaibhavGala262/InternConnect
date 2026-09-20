@@ -22,9 +22,8 @@ class ChatState(TypedDict, total=False):
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Free-tier OpenRouter model by default (no credits required to call).
-# Override with OPENROUTER_MODEL env var when you want a different one.
-_DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+# Free-tier OpenRouter model by default. Override with OPENROUTER_MODEL when needed.
+_DEFAULT_MODEL = "nex-agi/nex-n2.5-mini:free"
 
 
 def _call_llm(prompt: str) -> str:
@@ -47,7 +46,14 @@ def _call_llm(prompt: str) -> str:
     }
     with httpx.Client(timeout=120.0) as client:
         response = client.post(OPENROUTER_API_URL, json=payload, headers=headers)
-        response.raise_for_status()
+        if response.is_error:
+            # Keep the provider's useful diagnostic in backend logs without exposing
+            # the API key or returning the raw provider response to the frontend.
+            print(
+                f"OpenRouter request failed ({response.status_code}) for model "
+                f"{model}: {response.text[:500]}"
+            )
+            response.raise_for_status()
         data = response.json()
 
     try:

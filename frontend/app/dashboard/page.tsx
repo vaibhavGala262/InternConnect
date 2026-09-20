@@ -40,7 +40,9 @@ interface Internship {
 
 interface DashboardStats {
   total_internships: number;
-  total_interships_lastweek: number;
+  total_internships_lastweek: number;
+  total_applications: number;
+  total_applications_lastweek: number;
   latest_internship: Internship | null;
   total_students: number;
   total_students_lastweek: number;
@@ -68,7 +70,9 @@ export default function DashboardPage() {
   const { toast } = useToast()
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     total_internships: 0,
-    total_interships_lastweek: 0,
+    total_internships_lastweek: 0,
+    total_applications: 0,
+    total_applications_lastweek: 0,
     latest_internship: null,
     total_students: 0,
     total_students_lastweek: 0,
@@ -244,7 +248,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{dashboardStats.total_internships}</div>
               <p className="text-xs text-muted-foreground">
-                +{dashboardStats.total_interships_lastweek} since last week
+                +{dashboardStats.total_internships_lastweek} since last week
               </p>
             </CardContent>
           </Card>
@@ -255,14 +259,11 @@ export default function DashboardPage() {
               </CardTitle>
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {/* Applications count is not provided by the API, so we'll keep this as a placeholder */}
-                {userType === "student" ? "7" : "18"}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {userType === "student" ? "+2 since last week" : "+5 since last week"}
-              </p>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardStats.total_applications}</div>
+                <p className="text-xs text-muted-foreground">
+                  +{dashboardStats.total_applications_lastweek} since last week
+                </p>
             </CardContent>
           </Card>
           <Card>

@@ -60,6 +60,9 @@ export function ProfileImageUpload({ userId, firstName, lastName, onImageUploade
       // Notify parent component
       onImageUploaded()
 
+      // Notify every UserAvatar ("the Circle") in the app to reload instantly.
+      window.dispatchEvent(new Event("profile-image-updated"))
+
       // Refresh the image
       setImageKey(Date.now())
     } catch (error) {
@@ -80,7 +83,7 @@ export function ProfileImageUpload({ userId, firstName, lastName, onImageUploade
   useEffect(() => {
     const fetchImage = async () => {
       try {
-        const url = await UserService.getUserImage(userId)
+        const url = await UserService.getUserImage(userId, imageKey)
         setImageUrl(url)
       } catch (err) {
         console.error("Failed to load profile image", err)

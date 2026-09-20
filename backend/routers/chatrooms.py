@@ -108,20 +108,26 @@ async def get_chat_rooms(
             .filter(
                 models.ChatMessage.chat_room_id == room.id,
                 models.ChatMessage.is_read == False,
-                models.ChatMessage.sender_id != user_id  # Only count ChatMessages from the other user
+                models.ChatMessage.sender_id != current_user.id  # Only count messages from the other user
             )\
             .count()
 
         other_user_id = -1
+        other_user_name = "Unknown user"
         if current_user.type == "student":
             teacher = db.query(models.Teacher).filter(models.Teacher.teacher_id == room.teacher_id).first()
             other_user_id = teacher.user_id if teacher else -1
+            if teacher:
+                other_user_name = f"{teacher.first_name} {teacher.last_name}".strip()
         else:
             student = db.query(models.Student).filter(models.Student.sap_id == room.student_id).first()
             other_user_id = student.user_id if student else -1
+            if student:
+                other_user_name = f"{student.first_name} {student.last_name}".strip()
 
         response.append(ChatRoomResponse(
             id=room.id,
+            name=other_user_name,
             student_id=room.student_id,
             teacher_id=room.teacher_id,
             last_message=last_ChatMessage.content if last_ChatMessage else None,

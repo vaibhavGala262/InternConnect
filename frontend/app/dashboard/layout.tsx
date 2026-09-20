@@ -42,11 +42,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen min-h-0 overflow-hidden">
       <div className="hidden md:block w-64">
         <DashboardNav userType={userType} />
       </div>
-      <div className="flex-1 overflow-auto">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </div>
   )
 }

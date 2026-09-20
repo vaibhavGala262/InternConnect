@@ -11,9 +11,10 @@ import models
 from typing import Union , List, Optional
 from oauth import get_current_user , create_access_token , verify_access_token
 from sqlalchemy import or_
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from PIL import Image
 from io import BytesIO
+from storage import download_profile_image, upload_profile_image
 
 
 router = APIRouter(
@@ -204,8 +205,17 @@ async def  upload_image(
         raise HTTPException(status_code=400, detail=f"Failed to process image  , Error ${Exception}")
     
 
-    file_path = os.path.join(UPLOAD_DIR, f"user_{user_id}.jpeg")
-    rgb_image.save(file_path, "JPEG")
+    output = BytesIO()
+    rgb_image.save(output, "JPEG")
+    image_bytes = output.getvalue()
+
+    try:
+        upload_profile_image(f"user_{user_id}.jpeg", image_bytes)
+    except Exception as storage_error:
+        # Keep local development usable when Supabase Storage is unavailable.
+        file_path = os.path.join(UPLOAD_DIR, f"user_{user_id}.jpeg")
+        rgb_image.save(file_path, "JPEG")
+        print(f"Supabase image upload failed; saved local fallback: {storage_error}")
 
     return {"detail": f"Image uploaded successfully"}
 
@@ -217,11 +227,17 @@ async def get_image(
     current_user: int = Depends(get_current_user) ,
 ):
     
-    file_path = os.path.join(UPLOAD_DIR , f"user_{user_id}.jpeg")
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=status.HTTP_200_OK , detail="Image not found")
-    
-    return FileResponse(file_path  , media_type="image/jpeg" , filename="image.jpg")
+    image_path = f"user_{user_id}.jpeg"
+    try:
+        image_bytes, media_type = download_profile_image(image_path)
+        return Response(content=image_bytes, media_type=media_type)
+    except Exception as storage_error:
+        # Support existing local images during development/migration.
+        file_path = os.path.join(UPLOAD_DIR, image_path)
+        if os.path.exists(file_path):
+            return FileResponse(file_path, media_type="image/jpeg", filename="image.jpg")
+        print(f"Profile image unavailable for user {user_id}: {storage_error}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
     
 
 

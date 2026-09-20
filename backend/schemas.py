@@ -136,6 +136,7 @@ class ChatRoomCreate(BaseModel):
 
 class ChatRoomResponse(BaseModel):
     id: int
+    name: str
     user_id :int 
     student_id: int
     teacher_id: int

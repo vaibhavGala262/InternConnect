@@ -40,9 +40,17 @@ app.include_router(stats.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
+    import traceback
+    print(f"Unhandled error: {type(exc).__name__}: {exc}")
+    traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
+        content={"detail": f"Internal server error: {type(exc).__name__}: {exc}"},
     )
 
 

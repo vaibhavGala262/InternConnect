@@ -50,11 +50,13 @@ const UserService = {
 }
 ,
 
-  getUserImage: async (userId: number) => {
-    const blob = await fetchWithAuthBlob(`/users/get-image/${userId}`);
-    return URL.createObjectURL(blob); // this turns blob into usable image URL
+  getUserImage: async (userId: number, cacheBust?: boolean | number) => {
+    const qs = cacheBust
+      ? `?v=${typeof cacheBust === "number" ? cacheBust : Date.now()}`
+      : ""
+    const blob = await fetchWithAuthBlob(`/users/get-image/${userId}${qs}`)
+    return URL.createObjectURL(blob) // freshly created object URL (never stale)
   },
 }
 
 export default UserService
-

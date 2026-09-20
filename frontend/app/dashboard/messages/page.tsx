@@ -11,7 +11,6 @@ import { useToast } from "@/components/ui/use-toast"
 import ChatService from "@/services/chat-service"
 import AuthService from "@/services/auth-service"
 import { ChatWithTeacher } from "@/components/chat-with-teacher"
-import { ChatbotDialog } from "@/components/chatbot-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { UserAvatar } from "@/components/user-avatar"
 import { supabase } from "@/lib/supabase"
@@ -51,6 +50,15 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+
+  const addMessageIfMissing = (message: Message) => {
+    setMessages((prev) => {
+      if (prev.some((existingMessage) => existingMessage.id === message.id)) {
+        return prev
+      }
+      return [...prev, message]
+    })
+  }
   
 
 
@@ -148,20 +156,13 @@ export default function MessagesPage() {
             is_read: boolean
           }
 
-          setMessages((prev) => {
-            const exists = prev.some((msg) => msg.id === row.id)
-            if (exists) return prev
-            return [
-              ...prev,
-              {
-                id: row.id,
-                content: row.content,
-                sender_id: row.sender_id,
-                chat_room_id: row.chat_room_id,
-                sent_at: row.sent_at,
-                is_read: row.is_read,
-              },
-            ]
+          addMessageIfMissing({
+            id: row.id,
+            content: row.content,
+            sender_id: row.sender_id,
+            chat_room_id: row.chat_room_id,
+            sent_at: row.sent_at,
+            is_read: row.is_read,
           })
 
           setTimeout(() => {
@@ -189,7 +190,7 @@ export default function MessagesPage() {
         setIsSending(true)
 
         const sentMessage = await ChatService.sendMessage(selectedRoom, newMessage)
-        setMessages((prev) => [...prev, sentMessage])
+        addMessageIfMissing(sentMessage)
         setNewMessage("")
 
         // Scroll to bottom
@@ -221,8 +222,8 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <div className="p-4 border-b flex justify-between items-center">
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between border-b p-4">
         <div>
           <h1 className="text-2xl font-bold">Messages</h1>
           <p className="text-muted-foreground">Chat with students and teachers</p>
@@ -230,14 +231,13 @@ export default function MessagesPage() {
         <div className="flex gap-2">
       
         <ChatWithTeacher onChatCreated={fetchChatRooms} userType={userType || "student"} />
-  <ChatbotDialog />
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Chat List */}
-        <div className="w-full md:w-80 border-r flex flex-col">
-          <div className="p-4">
+        <div className="flex min-h-0 w-full shrink-0 flex-col border-r md:w-80">
+          <div className="shrink-0 p-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -250,7 +250,7 @@ export default function MessagesPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="all" className="px-4">
+          <Tabs defaultValue="all" className="flex min-h-0 flex-1 flex-col px-4">
             <TabsList className="w-full">
               <TabsTrigger value="all" className="flex-1">
                 All
@@ -259,8 +259,8 @@ export default function MessagesPage() {
                 Unread
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="all" className="mt-0">
-              <ScrollArea className="h-[calc(100vh-12rem)] flex-1 p-4 custom-scrollbar">
+            <TabsContent value="all" className="mt-0 min-h-0 flex-1">
+              <ScrollArea className="h-full p-4 custom-scrollbar">
                 <div className="space-y-2 p-2">
                   {filteredChatRooms.length === 0 ? (
                     <div className="text-center py-4 text-muted-foreground">
@@ -308,8 +308,8 @@ export default function MessagesPage() {
                 </div>
               </ScrollArea>
             </TabsContent>
-            <TabsContent value="unread" className="mt-0">
-              <ScrollArea className="h-[calc(100vh-12rem)] custom-scrollbar">
+            <TabsContent value="unread" className="mt-0 min-h-0 flex-1">
+              <ScrollArea className="h-full custom-scrollbar">
                 <div className="space-y-2 p-2 ">
                   {filteredChatRooms.filter((room) => (room.unread_count || 0) > 0).length === 0 ? (
                     <div className="text-center py-4 text-muted-foreground">No unread messages</div>
@@ -357,11 +357,11 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-2">
           {selectedRoom ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex shrink-0 items-center justify-between border-b p-4">
                 <div className="flex items-center gap-3">
                 
                   <UserAvatar
@@ -402,7 +402,7 @@ export default function MessagesPage() {
               )}
 
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4 custom-scrollbar" ref={scrollAreaRef}>
+              <ScrollArea className="min-h-0 flex-1 p-4 custom-scrollbar" ref={scrollAreaRef}>
                 <div className="space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center py-4 text-muted-foreground">No messages yet</div>
@@ -458,7 +458,7 @@ export default function MessagesPage() {
               </ScrollArea>
 
               {/* Message Input */}
-              <div className="p-4 border-t">
+              <div className="shrink-0 border-t bg-background p-4">
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type a message..."

@@ -3,7 +3,9 @@ import apiRequest from "@/lib/api-service"
 // Update the DashboardStats interface to include the new fields from the API
 export interface DashboardStats {
   total_internships: number;
-  total_interships_lastweek: number;
+  total_internships_lastweek: number;
+  total_applications: number;
+  total_applications_lastweek: number;
   latest_internship: {
     id: number;
     title: string;
